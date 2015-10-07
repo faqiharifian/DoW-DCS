@@ -1,18 +1,63 @@
 package com.digitcreativestudio.safian.dowdcs;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
+
+    private LinearLayout toggleButton;
+    private TextView hint, toggleLeft, toggleRight;
+    private boolean                      toggleStatus = false;
+    private WifiStateReceiver            wifiStateReceiver;
+    private Utility utility;
+    private ImageView imageView;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        this.toggleButton = (LinearLayout) findViewById(R.id.toggleLayout);
+        this.hint = (TextView) findViewById(R.id.hint);
+        this.toggleLeft = (TextView) findViewById(R.id.toggleLeft);
+        this.toggleRight = (TextView) findViewById(R.id.toggleRight);
+        this.imageView = (ImageView) findViewById(R.id.dcs_logo);
+
+        this.wifiStateReceiver = new WifiStateReceiver();
+        registerReceiver(wifiStateReceiver, new IntentFilter(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION));
+
+        utility = new Utility(MainActivity.this);
+
+        init();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        init();
+    }
+
+    private void init() {
+        if (utility.isWifiConnected()) {
+            resetToggleStatus();
+        } else {
+            lockToggle();
+        }
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -34,5 +79,88 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void resetToggleStatus() {
+        toggleStatus = utility.getAdbdStatus();
+        boolean ret = utility.setAdbWifiStatus(toggleStatus);
+        setToggleStatus(ret);
+        toggleButton.setOnClickListener(null);
+        toggleButton.setOnClickListener(new ToggleClickListener());
+    }
+
+    private void lockToggle() {
+        utility.setAdbWifiStatus(false);             // try stop
+        toggleStatus = false;
+        setToggleStatus(toggleStatus);
+        hint.setText("wifi is not connected");
+        toggleButton.setOnClickListener(null);
+    }
+
+    private class ToggleClickListener implements View.OnClickListener {
+        @Override public void onClick(View v) {
+            if (utility.isWifiConnected()) {
+                // try switch
+                boolean ret = utility.setAdbWifiStatus(!toggleStatus);
+                if (ret) {
+                    // switch successfully
+                    toggleStatus = !toggleStatus;
+                    setToggleStatus(toggleStatus);
+
+                    if (toggleStatus) {
+                        Toast.makeText(MainActivity.this, "adb wifi service started", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(MainActivity.this, "adb wifi service stopped", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    // failed
+                    Toast.makeText(MainActivity.this, "something wrong", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                lockToggle();
+            }
+        }
+    }
+
+    private void setToggleStatus(boolean status) {
+        if (!status) {
+            toggleLeft.setText("OFF");
+            toggleLeft.setBackgroundColor(getResources().getColor(R.color.gray_dark));
+            toggleRight.setText("");
+            toggleRight.setBackgroundColor(getResources().getColor(R.color.gray_light));
+            hint.setText("");
+            imageView.setImageResource(R.drawable.dcs_gray);
+        } else {
+            toggleLeft.setText("");
+            toggleLeft.setBackgroundColor(getResources().getColor(R.color.gray_light));
+            toggleRight.setText("ON");
+            toggleRight.setBackgroundColor(getResources().getColor(R.color.orange));
+            hint.setText("adb connect " + utility.getIp() + ":" + String.valueOf(utility.getPort()));
+            imageView.setImageResource(R.drawable.dcs);
+        }
+    }
+
+    private class WifiStateReceiver extends BroadcastReceiver {
+        @Override public void onReceive(Context context, Intent intent) {
+            final String action = intent.getAction();
+            if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
+                if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
+                    // wifi is connected, waiting for ip
+                    try {
+                        Thread.sleep(10000);
+                        int tryTimes = 0;
+                        while (utility.getIp() == null && tryTimes < 0) {
+                            Thread.sleep(1000);
+                        }
+                        resetToggleStatus();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                    // wifi connection lost
+                    lockToggle();
+                }
+            }
+        }
     }
 }
