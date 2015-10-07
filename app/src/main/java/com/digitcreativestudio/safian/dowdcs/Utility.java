@@ -43,22 +43,21 @@ public class Utility {
     // get phone ip
     public String getIp() {
         try {
-            if(tethering){
-                return "192.168.43.1";
-            }else{
-                List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
-                for (NetworkInterface intf : interfaces) {
-                    List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
-                    for (InetAddress addr : addrs) {
-                        if (!addr.isLoopbackAddress()) {
-                            String sAddr = addr.getHostAddress().toUpperCase();
-                            boolean isIPv4 = isIPv4Address(sAddr);
-                            if (isIPv4) {
-                                return sAddr;
-                            }
+            List<NetworkInterface> interfaces = Collections.list(NetworkInterface.getNetworkInterfaces());
+            for (NetworkInterface intf : interfaces) {
+                List<InetAddress> addrs = Collections.list(intf.getInetAddresses());
+                for (InetAddress addr : addrs) {
+                    if (!addr.isLoopbackAddress()) {
+                        String sAddr = addr.getHostAddress().toUpperCase();
+                        boolean isIPv4 = isIPv4Address(sAddr);
+                        if (isIPv4) {
+                            return sAddr;
                         }
                     }
                 }
+            }
+            if(tethering){
+                return "192.168.43.1";
             }
         } catch (Exception e) {
             e.printStackTrace();

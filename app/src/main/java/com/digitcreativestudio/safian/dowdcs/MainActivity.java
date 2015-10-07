@@ -1,12 +1,15 @@
 package com.digitcreativestudio.safian.dowdcs;
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.wifi.WifiManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v4.app.NotificationCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,6 +26,11 @@ public class MainActivity extends AppCompatActivity {
     private WifiStateReceiver            wifiStateReceiver;
     private Utility utility;
     private ImageView imageView;
+    private NotificationCompat.Builder mBuilder;
+    private final int notificationId = 1756;
+    private Intent notificationIntent;
+    private PendingIntent notificationPendingIntent;
+    private NotificationManager mNotifyMgr;
 
 
     @Override
@@ -40,6 +48,26 @@ public class MainActivity extends AppCompatActivity {
         registerReceiver(wifiStateReceiver, new IntentFilter(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION));
 
         utility = new Utility(MainActivity.this);
+
+        notificationIntent = new Intent(this, MainActivity.class);
+
+        notificationPendingIntent =
+                PendingIntent.getActivity(
+                        this,
+                        0,
+                        notificationIntent,
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                );
+
+        mBuilder = new NotificationCompat.Builder(this)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle(getString(R.string.app_name))
+                .setAutoCancel(false)
+                .setContentIntent(notificationPendingIntent)
+                .setOngoing(true);
+
+        mNotifyMgr =
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         init();
     }
@@ -107,11 +135,6 @@ public class MainActivity extends AppCompatActivity {
                     toggleStatus = !toggleStatus;
                     setToggleStatus(toggleStatus);
 
-                    if (toggleStatus) {
-                        Toast.makeText(MainActivity.this, "adb wifi service started", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(MainActivity.this, "adb wifi service stopped", Toast.LENGTH_SHORT).show();
-                    }
                 } else {
                     // failed
                     Toast.makeText(MainActivity.this, "something wrong", Toast.LENGTH_SHORT).show();
@@ -130,6 +153,9 @@ public class MainActivity extends AppCompatActivity {
             toggleRight.setBackgroundColor(getResources().getColor(R.color.gray_light));
             hint.setText("");
             imageView.setImageResource(R.drawable.dcs_gray);
+
+            Toast.makeText(MainActivity.this, "adb wifi service stopped", Toast.LENGTH_SHORT).show();
+            mNotifyMgr.cancel(notificationId);
         } else {
             toggleLeft.setText("");
             toggleLeft.setBackgroundColor(getResources().getColor(R.color.gray_light));
@@ -137,6 +163,10 @@ public class MainActivity extends AppCompatActivity {
             toggleRight.setBackgroundColor(getResources().getColor(R.color.orange));
             hint.setText("adb connect " + utility.getIp() + ":" + String.valueOf(utility.getPort()));
             imageView.setImageResource(R.drawable.dcs);
+
+            Toast.makeText(MainActivity.this, "adb wifi service started", Toast.LENGTH_SHORT).show();
+            mBuilder.setContentText("adb connect " + utility.getIp() + ":" + String.valueOf(utility.getPort()));
+            mNotifyMgr.notify(notificationId, mBuilder.build());
         }
     }
 
