@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="status_bar">#f57c00</color>
+    <color name="action_bar">#ff9800</color>
+    <color name="accent">#448aff</color>
+    <color name="accent_fall">#82b1ff</color>
+</resources>

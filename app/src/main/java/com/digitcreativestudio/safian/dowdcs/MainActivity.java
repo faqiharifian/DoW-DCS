@@ -160,7 +160,7 @@ public class MainActivity extends AppCompatActivity {
             toggleLeft.setText("");
             toggleLeft.setBackgroundColor(getResources().getColor(R.color.gray_light));
             toggleRight.setText("ON");
-            toggleRight.setBackgroundColor(getResources().getColor(R.color.orange));
+            toggleRight.setBackgroundColor(getResources().getColor(R.color.accent));
             hint.setText("adb connect " + utility.getIp() + ":" + String.valueOf(utility.getPort()));
             imageView.setImageResource(R.drawable.dcs);
 
